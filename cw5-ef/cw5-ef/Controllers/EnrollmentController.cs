@@ -2,41 +2,66 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using cw5_ef.DTOs.Requests;
+using cw5_ef.DTOs.Responses;
+using cw5_ef.Models;
+using cw5_ef.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace cw5_ef.Controllers
 {
-    [Route("api/enrollment")]
+    [Route("api/enrollments")]
     [ApiController]
-    public class EnrollmentController : ControllerBase
+    public class EnrollmentsController : ControllerBase
     {
-        private readonly IStudentsDbService _service;
-
-        public EnrollmentController(IStudentsDbService _service)
-        {
-            this._service = _service;
-        }
-
-        //zadanie 4.1 (5.1) - dodajemy nowych studentow
         [HttpPost]
-        public IActionResult EnrollStudent(EnrollStudentRequest request)
+        [Route("enroll")]
+        public IActionResult EnrollStudent([FromBody]EnrollStudentRequest request, [FromServices]IStudentsDbService dbService)
         {
-            var result = _service.EnrollStudent(request);
-            if (result != null) return Ok(result);
-            return NotFound();
+            Student studentToEnroll = new Student
+            {
+                IndexNumber = request.IndexNumber,
+                LastName = request.LastName,
+                FirstName = request.FirstName,
+                BirthDate = request.BirthDate
+            };
+
+            Enrollment tmp = dbService.EnrollStudent(studentToEnroll, request.Studies);
+            if (tmp == null) return BadRequest();
+
+            EnrollStudentResponse response = new EnrollStudentResponse
+            {
+                Semester = tmp.Semester,
+                IdStudy = tmp.IdStudy,
+                StartDate = tmp.StartDate,
+                IdEnrollment = tmp.IdEnrollment
+            };
+            return Ok(response);
         }
 
-        //zadanie 4.2 (5.2) - promocja na nowy semestr
-        [HttpPost("promotions")]
-        public IActionResult PromoteStudent(PromoteStudentRequest promote)
+        [HttpPost]
+        [Route("promotions")]
+        public IActionResult PromoteSemester([FromBody] PromoteStudentRequest request, [FromServices] IStudentsDbService dbService)
         {
-            var result = _service.PromoteStudent(promote);
-            if (result != null) return Ok(result);
-            return NotFound();
+            var newEnrollment = dbService.PromoteStudents(request.StudiesId, request.Semester);
+
+            if (newEnrollment == null)
+            {
+                return BadRequest();
+            }
+            else
+            {
+                var response = new EnrollStudentResponse
+                {
+                    Semester = newEnrollment.Semester,
+                    IdStudy = newEnrollment.IdStudy,
+                    StartDate = newEnrollment.StartDate,
+                    IdEnrollment = newEnrollment.IdEnrollment
+                };
+                return Ok(response);
+            }
         }
-
-
 
 
     }
