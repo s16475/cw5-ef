@@ -20,6 +20,7 @@ namespace cw5_ef.Controllers
             _context = context;
         }
 
+        //Zad2
         // GET: api/Students
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Student>>> GetStudent()
